@@ -254,3 +254,100 @@ systemctl enable cron
 **Telegram：**<https://t.me/ilemonrain>
 **Telegram个人频道：**<https://t.me/ilemonrain_channel>
 **捐赠方式：**TG私信获取
+
+
+
+# 以下内容来源于作者的bitbucket
+
+> bitbucket地址：https://bitbucket.org/ilemonrain/aliddns
+
+## AliDDNS (阿里云-云解析 DDNS 更新工具)
+
+### 简单说明
+
+此项目基于 GitHub [kyriosli/koolshare-aliddns](https://github.com/kyriosli/koolshare-aliddns/tree/master/aliddns) 项目修改优化，优化代码结构，加入注释使得代码简单易懂。
+
+AliDDNS工具是基于阿里云云解析API使用的一个DDNS域名更新工具。通过执行脚本，可以快速更新在阿里云云解析上的域名记录，达到动态域名的效果。
+
+目前代码根据原版，完成了重新整理以及注释，方便阅读代码，在以后的更新（更新？咕咕咕）中，计划加入以下功能：
+\- 添加开机启动项 - 添加定时循环执行能力 (基于cron) - 支持输入参数启动
+
+### 使用方法
+
+首先，安装依赖： 
+Ubuntu/Debian：
+
+```
+apt-get update
+apt-get install curl dnsutils -y
+```
+
+CentOS：
+
+```
+yum makecache fast
+yum install curl bind-utils -y
+```
+
+获取脚本文件，之后将脚本文件保存在合适的地方，比如`/usr/sbin/AliDDNS.sh`；
+
+修改脚本文件中的参数，对脚本进行配置：
+
+```
+wget -O /usr/sbin/AliDDNS.sh https://bitbucket.org/ilemonrain/aliddns/downloads/AliDDNS.sh
+vim /usr/sbin/AliDDNS.sh
+```
+
+修改其中的如下参数：
+
+> **AliDDNS_DomainName:** 设置需要修改的一级域名 (example.com)
+> **AliDDNS_SubDomainName:** 设置需要修改的子域名 (ddns)
+> 以上两者连接在一起 (AliDDNS_SubDomainName.AliDDNS_DomainName)，就是最终需要修改的域名 (ddns.example.com)
+> **AliDDNS_TTL:** 设定子域名记录的TTL值 (600-86400，企业版云解析按照套餐可修改为1-86400)
+> **AliDDNS_AK:** 阿里云Access Key ID，请移步 <https://ram.console.aliyun.com/#/user/list> 获取
+> **AliDDNS_SK:** 阿里云Access Key SecretKey，获取方法同上
+> **AliDDNS_LocalIP:** 获取域名对应IP地址的命令(nslookup)，默认使用Akamai
+> **AliDDNS_DomainServerIP:** 获取域名对应IP地址所用到的DNS服务器，默认223.5.5.5，如果出现超时请更换为其他DNS
+
+之后保存，为文件加上可执行属性：
+
+```
+chmod +x /usr/sbin/AliDDNS.sh
+```
+
+**[不安全]** 如果你的AK/SK是在 <https://ak-console.aliyun.com/> 这里获取的，无需进行任何分配权限的操作；
+
+**[安全，推荐]** 如果你的AK/SK是在 <https://ram.console.aliyun.com/#/user/list> 这里获取的，请给生成的AK/SK组给予云解析的权限(只读、管理都给) 即可；
+
+不管使用什么样的方式获取AK/SK，请务必保管好你的AK/SK，一旦泄露给他人，将会拥有直接控制你整个阿里云账号的能力！如果意外泄露，请立刻移除泄露的AK/SK！
+
+配置好权限后，执行脚本，测试是否能够正确更换解析记录：
+
+```
+/usr/sbin/AliDDNS.sh
+```
+
+### 简单的方法使AliDDNS后台自动更换IP地址
+
+首先，获取脚本文件，之后在`#!/bin/sh`后面加上如下两行：
+
+```
+while true
+do
+```
+
+然后在代码的结尾处加上两行：
+
+```
+sleep 300
+done
+```
+
+作用就是无限循环，执行完成这个脚本后，调用sleep睡眠300秒 (间隔自行决定)，之后重新开始循环 (再次更新DDNS)
+
+之后保存退出，使用如下命令行启动：
+
+```
+nohup /usr/sbin/AliDDNS.sh >/dev/null 2>&1 &
+```
+
